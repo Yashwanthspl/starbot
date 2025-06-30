@@ -1,22 +1,45 @@
-// src/Views/HomePage.js
-import React, { useState } from 'react';
-import './HomePage.css';
+import React, { useState } from "react";
+import { getGPTResponse } from "../api/openai";
+import "./HomePage.css";
 
-const HomePage = () => {
-    const [isBlue, setIsBlue] = useState(false);
+function HomePage() {
+  const [userInput, setUserInput] = useState("");
+  const [botReply, setBotReply] = useState("");
+  const [loading, setLoading] = useState(false);
 
-    const toggleColor = () => {
-        setIsBlue(!isBlue);
-    };
+  const handleSend = async () => {
+    if (!userInput.trim()) return;
+    setLoading(true);
+    const reply = await getGPTResponse(userInput);
+    setBotReply(reply);
+    setLoading(false);
+  };
 
-    return (
-        <div className="cafe-homepage">
-            <h1>Welcome to StarBot AI</h1>
-            <p>Your personal AI health assistant.</p>
-            <div className={`cafe-color-box ${isBlue ? 'cafe-blue' : 'cafe-red'}`}></div>
-            <button className="cafe-button" onClick={toggleColor}>Change Color</button>
-        </div>
-    );
-};
+  return (
+    <div className="chatbot-homepage">
+      <h1>StarBot - Crisis Intervention Assistant</h1>
+      <p className="chatbot-subtext">How are you feeling today? Let me support you.</p>
+
+      <div className="chatbot-input-area">
+        <input
+          type="text"
+          value={userInput}
+          onChange={(e) => setUserInput(e.target.value)}
+          placeholder="Type your concern..."
+          className="chatbot-input"
+        />
+        <button onClick={handleSend} className="chatbot-button">Send</button>
+      </div>
+
+      <div className="chatbot-response">
+        {loading ? (
+          <p><em>Typing...</em></p>
+        ) : (
+          botReply && <p><strong>Bot:</strong> {botReply}</p>
+        )}
+      </div>
+    </div>
+  );
+}
 
 export default HomePage;
