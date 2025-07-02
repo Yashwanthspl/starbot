@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { getGPTResponse } from "../api/openai";
+import { askGranite } from "../api/granite";
 import "./HomePage.css";
 
 function HomePage() {
@@ -10,7 +10,7 @@ function HomePage() {
   const handleSend = async () => {
     if (!userInput.trim()) return;
     setLoading(true);
-    const reply = await getGPTResponse(userInput);
+    const reply = await askGranite(userInput);
     setBotReply(reply);
     setLoading(false);
   };
@@ -28,7 +28,9 @@ function HomePage() {
           placeholder="Type your concern..."
           className="chatbot-input"
         />
-        <button onClick={handleSend} className="chatbot-button">Send</button>
+        <button onClick={handleSend} className="chatbot-button">
+          {loading ? "..." : "Send"}
+        </button>
       </div>
 
       <div className="chatbot-response">
