@@ -1,12 +1,12 @@
 // src/App.js
-import React from 'react';
+import React, { useState, useMemo } from 'react';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import HomePage from './views/HomePage';
 
-const theme = createTheme({
+const getTheme = (mode) => createTheme({
   palette: {
-    mode: 'light',
+    mode,
     primary: {
       main: '#1976d2',
     },
@@ -14,8 +14,8 @@ const theme = createTheme({
       main: '#ff4081',
     },
     background: {
-      default: '#f4f6fb',
-      paper: '#fff',
+      default: mode === 'light' ? '#f4f6fb' : '#181c24',
+      paper: mode === 'light' ? 'rgba(255,255,255,0.7)' : 'rgba(30,34,44,0.7)',
     },
   },
   typography: {
@@ -24,10 +24,14 @@ const theme = createTheme({
 });
 
 function App() {
+  const [mode, setMode] = useState('light');
+  const theme = useMemo(() => getTheme(mode), [mode]);
+  const toggleColorMode = () => setMode((prev) => (prev === 'light' ? 'dark' : 'light'));
+
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <HomePage />
+      <HomePage mode={mode} toggleColorMode={toggleColorMode} />
     </ThemeProvider>
   );
 }
