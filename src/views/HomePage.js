@@ -8,16 +8,20 @@ import Paper from '@mui/material/Paper';
 import TextField from '@mui/material/TextField';
 import Button from '@mui/material/Button';
 import Fade from '@mui/material/Fade';
+import Slide from '@mui/material/Slide';
 import CircularProgress from '@mui/material/CircularProgress';
 import Fab from '@mui/material/Fab';
 import Brightness4Icon from '@mui/icons-material/Brightness4';
 import Brightness7Icon from '@mui/icons-material/Brightness7';
 import Avatar from '@mui/material/Avatar';
+import LogoutIcon from '@mui/icons-material/Logout';
+import Snackbar from '@mui/material/Snackbar';
 import { blue, pink } from '@mui/material/colors';
+import { signOut, auth } from '../firebase';
 
-function ChatBubble({ message, from }) {
+function ChatBubble({ message, from, index }) {
   return (
-    <Fade in timeout={400}>
+    <Slide direction={from === 'user' ? 'left' : 'right'} in mountOnEnter unmountOnExit appear timeout={400 + index * 60}>
       <Box
         sx={{
           display: 'flex',
@@ -39,6 +43,7 @@ function ChatBubble({ message, from }) {
             color: 'text.primary',
             fontSize: 16,
             boxShadow: from === 'user' ? 2 : 1,
+            transition: 'box-shadow 0.2s',
           }}
         >
           {message}
@@ -47,16 +52,17 @@ function ChatBubble({ message, from }) {
           <Avatar sx={{ bgcolor: pink[400], width: 32, height: 32, ml: 1 }}>🧑</Avatar>
         )}
       </Box>
-    </Fade>
+    </Slide>
   );
 }
 
-function HomePage({ mode, toggleColorMode }) {
+function HomePage({ mode, toggleColorMode, user }) {
   const [userInput, setUserInput] = useState("");
   const [messages, setMessages] = useState([
     { from: 'bot', text: 'How are you feeling today? Let me support you.' }
   ]);
   const [loading, setLoading] = useState(false);
+  const [snackbarOpen, setSnackbarOpen] = useState(false);
 
   const handleSend = async () => {
     if (!userInput.trim()) return;
@@ -68,6 +74,14 @@ function HomePage({ mode, toggleColorMode }) {
     setMessages((msgs) => [...msgs, { from: 'bot', text: reply }]);
     setLoading(false);
   };
+
+  const handleLogout = async () => {
+    await signOut(auth);
+    setSnackbarOpen(true);
+  };
+
+  const displayName = user?.isAnonymous ? 'Guest' : (user?.displayName || 'User');
+  const photoURL = user?.isAnonymous ? null : user?.photoURL;
 
   return (
     <Box
@@ -81,18 +95,37 @@ function HomePage({ mode, toggleColorMode }) {
     >
       <AppBar position="static" color="transparent" elevation={0} sx={{ background: 'none', boxShadow: 'none', pt: 2 }}>
         <Toolbar>
-          <Typography variant="h4" sx={{ flexGrow: 1, fontWeight: 900, letterSpacing: 1, color: '#fff', textShadow: '0 2px 16px #0006' }}>
+          <Typography variant="h4" sx={{ fontWeight: 900, letterSpacing: 1, color: '#fff', textShadow: '0 2px 16px #0006', mr: 2 }}>
             StarBot
           </Typography>
-          <Fab
-            size="medium"
-            color="secondary"
-            aria-label="toggle theme"
-            onClick={toggleColorMode}
-            sx={{ ml: 2, boxShadow: 3 }}
-          >
-            {mode === 'dark' ? <Brightness7Icon /> : <Brightness4Icon />}
-          </Fab>
+          <Box sx={{ flexGrow: 1 }} />
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Avatar src={photoURL || undefined} sx={{ width: 36, height: 36, bgcolor: photoURL ? undefined : 'primary.main', fontWeight: 700 }}>
+              {photoURL ? '' : displayName[0]}
+            </Avatar>
+            <Typography variant="subtitle1" sx={{ color: '#fff', fontWeight: 700, mx: 1, textShadow: '0 1px 8px #0006' }}>
+              {displayName}
+            </Typography>
+            <Button
+              variant="outlined"
+              color="inherit"
+              size="small"
+              startIcon={<LogoutIcon />}
+              onClick={handleLogout}
+              sx={{ ml: 1, borderColor: '#fff', color: '#fff', fontWeight: 700, textTransform: 'none', boxShadow: '0 1px 8px #0004', ':hover': { background: 'rgba(255,255,255,0.08)' } }}
+            >
+              Logout
+            </Button>
+            <Fab
+              size="small"
+              color="secondary"
+              aria-label="toggle theme"
+              onClick={toggleColorMode}
+              sx={{ ml: 2, boxShadow: 3 }}
+            >
+              {mode === 'dark' ? <Brightness7Icon /> : <Brightness4Icon />}
+            </Fab>
+          </Box>
         </Toolbar>
       </AppBar>
       <Box
@@ -124,11 +157,11 @@ function HomePage({ mode, toggleColorMode }) {
           }}
         >
           <Typography variant="h5" align="center" fontWeight={700} sx={{ mb: 2, color: 'primary.main' }}>
-            Crisis Intervention Assistant
+            Hi, {displayName}! 👋
           </Typography>
           <Box sx={{ minHeight: 220, maxHeight: 320, overflowY: 'auto', mb: 2, pr: 1 }}>
             {messages.map((msg, idx) => (
-              <ChatBubble key={idx} message={msg.text} from={msg.from} />
+              <ChatBubble key={idx} message={msg.text} from={msg.from} index={idx} />
             ))}
             {loading && (
               <Fade in={loading} timeout={400}>
@@ -141,7 +174,10 @@ function HomePage({ mode, toggleColorMode }) {
               </Fade>
             )}
           </Box>
-          <Box sx={{ display: 'flex', gap: 1 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 1 }}>
+            <Avatar src={photoURL || undefined} sx={{ width: 32, height: 32, bgcolor: photoURL ? undefined : 'primary.main', fontWeight: 700, mr: 1 }}>
+              {photoURL ? '' : displayName[0]}
+            </Avatar>
             <TextField
               fullWidth
               variant="outlined"
@@ -150,20 +186,27 @@ function HomePage({ mode, toggleColorMode }) {
               placeholder="Type your concern..."
               disabled={loading}
               onKeyDown={(e) => { if (e.key === 'Enter') handleSend(); }}
-              sx={{ bgcolor: 'background.paper', borderRadius: 2 }}
+              sx={{ bgcolor: 'background.paper', borderRadius: 2, boxShadow: '0 1px 8px #0001', ':hover': { boxShadow: '0 2px 12px #0002' } }}
             />
             <Button
               variant="contained"
               color="primary"
               onClick={handleSend}
               disabled={loading || !userInput.trim()}
-              sx={{ minWidth: 90, fontWeight: 700 }}
+              sx={{ minWidth: 90, fontWeight: 700, py: 1.2, borderRadius: 2, boxShadow: 2, ':hover': { boxShadow: 4 } }}
             >
               {loading ? <CircularProgress size={24} color="inherit" /> : 'Send'}
             </Button>
           </Box>
         </Paper>
       </Box>
+      <Snackbar
+        open={snackbarOpen}
+        autoHideDuration={2000}
+        onClose={() => setSnackbarOpen(false)}
+        message="Logged out successfully"
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      />
     </Box>
   );
 }

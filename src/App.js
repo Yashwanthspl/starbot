@@ -1,8 +1,10 @@
 // src/App.js
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import HomePage from './views/HomePage';
+import LoginPage from './views/LoginPage';
+import { auth } from './firebase';
 
 const getTheme = (mode) => createTheme({
   palette: {
@@ -28,10 +30,27 @@ function App() {
   const theme = useMemo(() => getTheme(mode), [mode]);
   const toggleColorMode = () => setMode((prev) => (prev === 'light' ? 'dark' : 'light'));
 
+  const [user, setUser] = useState(null);
+  const [authLoading, setAuthLoading] = useState(true);
+
+  useEffect(() => {
+    const unsubscribe = auth.onAuthStateChanged((firebaseUser) => {
+      setUser(firebaseUser);
+      setAuthLoading(false);
+    });
+    return unsubscribe;
+  }, []);
+
+  if (authLoading) return null;
+
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <HomePage mode={mode} toggleColorMode={toggleColorMode} />
+      {user ? (
+        <HomePage mode={mode} toggleColorMode={toggleColorMode} user={user} />
+      ) : (
+        <LoginPage onLogin={setUser} />
+      )}
     </ThemeProvider>
   );
 }
